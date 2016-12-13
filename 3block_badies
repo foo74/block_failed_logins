@@ -1,0 +1,4 @@
+#!/bin/sh
+netfilter-persistent save
+cat /dev/null > /var/log/auth.log
+cat /dev/null > /var/log/btmp

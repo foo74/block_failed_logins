@@ -1,0 +1,2 @@
+#!/bin/sh
+lastb | awk '{ print $3 }' > /home/foo1/badips
