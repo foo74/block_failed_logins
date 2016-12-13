@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# Get the list of bad IPs and put in a variable.
+bads=$(lastb | awk '$0 ~ /[0-9]+\.[0-9]/{print $3}' | sort | uniq)
+
+# For each bad IP add a DROP rule.
+for ip in $bads
+do
+   echo "Blocking $ip"
+   iptables -A INPUT -s $ip -j DROP
+done
+
+# Save the rules to a persistent state.
+/usr/sbin/netfilter-persistent save
+
+# Clear the auth and btmp logs.
+/bin/cat /dev/null > /var/log/auth.log
+/bin/cat /dev/null > /var/log/btmp
