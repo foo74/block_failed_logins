@@ -1,2 +1,8 @@
 1. Currently this will block every ipv4 address that shows a bad login attempt. Don't lock yourself out.
 2. Need to add a variable for the number of failed to lock. Set at 3. Right now ANY failed will be blocked.
+
+for openbsd add the following to /etc/pkg.conf
+installpath = ftp://mirrors.syringanetworks.net/pub/OpenBSD/%c/packages/%a
+
+And set networking with /etc/hostname.<interface>
+inet 172.16.0.1 255.240.0.0
