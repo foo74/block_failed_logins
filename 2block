@@ -1,0 +1,17 @@
+#!/bin/sh
+
+# Get the list of bad IPs and put in a variable.
+echo "compiling list of failed login IPs..."
+bads=$(lastb | awk '$0 ~ /[0-9]+\.[0-9]/{print $3}' | sort | uniq -c)
+bads2=$(echo "$bads" | sed -e 's/^[ ]*//' )
+echo "$bads"
+echo "$bads2" 
+echo "done"
+
+# For each bad IP add a DROP rule.
+#echo "starting loop"
+#for ip in $bads2
+#do
+   #echo "line is $ip"
+#done
+#echo "done"
