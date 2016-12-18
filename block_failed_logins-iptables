@@ -1,26 +1,81 @@
-#!/bin/sh
+#!/bin/bash
 
-# Get the list of bad IPs and put in a variable.
-echo "compiling list of failed login IPs..."
-bads=$(lastb | awk '$0 ~ /[0-9]+\.[0-9]/{print $3}' | sort | uniq)
+##################################################################################################################
+# Block IP addresses from failed login attempts. Default number of failed login attempts for script to add
+# the IP to the iptables block list is 3. This can be changed with the number on the command line argument.
+#
+# Example: ./block_failed_logins 10
+# This will only block IP addresses if there have been 10 or greater attempts.
+#
+##################################################################################################################
+
+# If the number of args is 0, then set default to 3 failed logins threshold.
+if [ $# -eq 0 ]
+then
+   num_bad_attempts=3
+# Else use the first command line arg.
+else
+   num_bad_attempts=$1
+fi
+
+# Generate the list of IPs with failed logins count.
+echo "Compiling list of failed login IPs..."
+bads=$(lastb | awk '$3 ~ /[0-9]+\.[0-9]+\.[0-9]+\.[0-9]/{print $3}' | sort | uniq -c | sed -e 's/^[ ]*//' )
 echo "done"
+echo ""
+#echo "$bads"
 
-# For each bad IP add a DROP rule.
-echo "adding bad IPs to iptables INPUT chain as DROP..."
-for ip in $bads
+# While there are lines in the failed logins file, process them.
+while read -r line
 do
-   echo "Blocking $ip"
-   iptables -A INPUT -s $ip -j DROP
-done
-echo "done"
+   #echo "line is: $line"
+
+   # Set the counter to 0 (to track total or IP position).
+   counter=0
+   # Set block boolean to 0. Use this to keep track if we should block.
+   block=0
+
+   # For each word in the line, process it. In the awk statement above our output only has 2 words. First
+   # is the total of how many times the IP occurs and the second is the IP itself.
+   for x in $line
+   do
+      # Each line contains a total and the IP. If counter == 0 then this is the total.
+      if [ $counter -eq 0 ]
+      then
+         # If the count is greater than the number of bad attempts we care about then block the IP.
+         if [ $x -ge $num_bad_attempts ]
+         then
+            echo "Total is $x, which is more than $num_bad_attempts, BLOCK IP."
+            block=1
+         else
+            echo "Total is $x, not enough failed logins to block."
+         fi
+      # Else if the counter is 1 then we are on the IP address.
+      elif [ $counter -eq 1 ]
+      then
+         # If the block flag is set then block it.
+         if [ $block -eq 1 ]
+         then
+           echo "Blocking $x..."
+           /sbin/iptables -A INPUT -s $x -j DROP
+           echo "done"
+           echo ""
+           block=0
+         fi
+      fi
+      ((counter+=1)) 
+   done
+done <<< "$bads"
 
 # Save the rules to a persistent state.
-echo "saving iptables state"
+echo "Saving iptables state..."
 /usr/sbin/netfilter-persistent save
 echo "done"
+echo ""
 
 # Clear the auth and btmp logs.
-echo "clearing /var/log/auth.log and /var/log/btmp"
+echo "Clearing /var/log/auth.log and /var/log/btmp..."
 /bin/cat /dev/null > /var/log/auth.log
 /bin/cat /dev/null > /var/log/btmp
 echo "done"
+echo ""
