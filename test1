@@ -1,0 +1,7 @@
+#!/bin/bash
+
+while read -r ip
+do
+   #echo "$ip"
+   /usr/bin/geoiplookup $ip 
+done < ips

@@ -56,7 +56,8 @@ do
          # If the block flag is set then block it.
          if [ $block -eq 1 ]
          then
-           echo "Blocking $x..."
+           echo "Blocking $x from"
+           /usr/bin/geoiplookup $x
            /sbin/iptables -A INPUT -s $x -j DROP
            echo "done"
            echo ""
